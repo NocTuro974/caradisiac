@@ -24,8 +24,13 @@ router.get('/populate', async function(req, res, next) {
 
 router.get('/search', async function(req, res, next){
     let qres = await search();
-    res.send("recherche terminée\n" + qres);
+    res.json(qres);
 });
+
+router.get('/map', async function(req, res, next){
+    await map();
+    res.send("indexage terminé");
+})
 
 async function asyncGetModels(){
     let models = await getModels('PEUGEOT');
@@ -55,17 +60,64 @@ async function populate(){
     });
 }
 
+async function map(){
+    var body = {
+        model : {
+            properties : {
+                brand : {"type" : "text", "fielddata" : true},
+                model : {"type" : "text", "fielddata" : true},
+                volume : {"type" : "text", "fielddata" : true}
+            }
+        }
+    }
+    client.indices.putMapping({index:"models", type:"model", body:body});
+}
+
 async function search(){
     let res = await client.search({
         index : "models",
         type : "model",
-        q : "brand:PEUGEOT"
+        q : "brand:PEUGEOT",
+        size : 50
     });
+    let modelList = [];
     console.log("passe ici");
     res.hits.hits.forEach(function(element){
-        console.log(element._source)
+        modelList.push(element._source);
     })
-    return res.hits;
+    modelList = sort(modelList);
+    return modelList;
+}
+
+function maxVolumeIndex(list){
+    let i = 0;
+    let imax = 0;
+    while(list[i].volume == ""){
+        i++;
+        imax++;
+    }
+    let max = parseInt(list[i].volume);
+    list.forEach(function(element){
+        if (element.volume != ""){
+            if (parseInt(element.volume) > max){
+                max = parseInt(element.volume);
+                imax = i;
+            }
+        }
+        i++;
+    })
+    return imax;
+}
+
+function sort(list){
+    console.log("sort");
+    let sortedList = [];
+    for(i = 0; i < 10; i++){
+        let maxIndex = maxVolumeIndex(list);
+        sortedList.push(list[maxIndex]);
+        list.splice(maxIndex,1);
+    }
+    return sortedList;
 }
 
 module.exports = router;
