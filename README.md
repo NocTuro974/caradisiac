@@ -14,3 +14,5 @@ then
 If it works : perfect 
 If it doesn't work, you can :
 - localhost:9292/search this will display the first ten results of peugeot models, displayed in volume descending order
+
+This work has been done in cooperation with Alexandre Gouin.
